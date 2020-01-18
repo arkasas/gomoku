@@ -1,6 +1,7 @@
 package server;
 
 import model.Board;
+import model.BoardController;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -106,7 +107,9 @@ public class DatabaseConnector {
     }
 
     public boolean createBoard(String userId) {
-        int result = execute("INSERT INTO `board` (`id`, `user_one`, `user_two`, `board`, `state`) VALUES (NULL, '" + userId + "', NULL, NULL, 'WAITING');");
+        String[][] board = BoardController.createNewBoard();
+        String boardString = BoardController.parseBoardToStringJSON(board);
+        int result = execute("INSERT INTO `board` (`id`, `user_one`, `user_two`, `board`, `state`) VALUES (NULL, '" + userId + "', NULL, '" + boardString + "', 'WAITING');");
         if (result == -1) {
             return false;
         }
@@ -134,18 +137,33 @@ public class DatabaseConnector {
         return null;
     }
 
-    public String getBoardByUser(String userid) {
-        ResultSet set = executeWithResult("SELECT board FROM `board` WHERE user_one = '" + userid + "' OR user_two = '" + userid + "'");
+    public Board getBoardByUser(String userid) {
+        ResultSet set = executeWithResult("SELECT * FROM `board` WHERE user_one = '" + userid + "' OR user_two = '" + userid + "'");
         try {
             ResultSetMetaData rsmd = set.getMetaData();
             while (set.next()) {
-                return set.getString("board");
+                Board b = new Board();
+                b.setId(set.getInt("id"));
+                b.setUserOne(set.getString("user_one"));
+                b.setUserTwo(set.getString("user_two"));
+                b.setBoard(set.getString("board"));
+                b.setState(set.getString("state"));
+                return b;
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return null;
     }
+
+    public boolean saveBoard(String boardId, String board) {
+        int result = execute("UPDATE `board` SET `board` = '"+  board + "' WHERE `board`.`id` = "+ boardId + ";");
+        if (result == -1) {
+            return false;
+        }
+        return true;
+    }
+
 
     public int execute(String sql) {
         try {

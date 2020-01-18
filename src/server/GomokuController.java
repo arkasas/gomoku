@@ -1,6 +1,7 @@
 package server;
 
 import model.Board;
+import model.BoardController;
 
 import java.util.ArrayList;
 
@@ -32,8 +33,11 @@ public class GomokuController {
         return databaseConnector.getBoardUserOne(boardId);
     }
 
-    public String[][] getBoardByUser(String userId) {
-        String board = databaseConnector.getBoardByUser(userId);
-        return new String[0][0];
+    public Board getBoardByUser(String userId) {
+        return databaseConnector.getBoardByUser(userId);
+    }
+
+    public boolean saveBoardToBase(String boardId, String board) {
+        return databaseConnector.saveBoard(boardId, board);
     }
 }

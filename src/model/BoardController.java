@@ -33,15 +33,23 @@ public class BoardController {
 
     static public String[][] parseStringToBoard(String s) {
         String newString = s.substring(1);
-        newString = newString.substring(newString.length());
+        newString = removeLastChar(newString);
 
         String[][] arr = new String[15][15];
+        String[] sss = newString.split("}");
         for(int i = 0; i < 15; i++) {
+            String temp = sss[i].substring(1);
+            String[] newArr = temp.split(",");
             for(int j = 0; j < 15; j++) {
-                arr[i][j] = "0";
+                arr[i][j] = newArr[j];
             }
         }
 
         return arr;
     }
+
+    private static String removeLastChar(String str) {
+        return str.substring(0, str.length() - 1);
+    }
+
 }

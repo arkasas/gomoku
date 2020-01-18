@@ -1,5 +1,9 @@
 package server;
 
+import model.Board;
+import model.BoardController;
+import model.GameMessage;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -18,6 +22,7 @@ class ClientHandler implements Runnable
     boolean couldMove = false;
     boolean inGame = false;
     GomokuController controller = new GomokuController();
+    private JSONController jsonController = new JSONController();
     // constructor
     public ClientHandler(Socket s,
                          DataInputStream dis, DataOutputStream dos) {
@@ -64,25 +69,44 @@ class ClientHandler implements Runnable
                     case "JOIN_TO_BOARD":
                         String boardId = st.nextToken();
                         controller.joinToBoard(name, boardId);
-                        String oppositUser = controller.getBoardOwner(boardId);
-                        dos.writeUTF("PLAYER_2#" + oppositUser + "#STOP");
-                        this.inGame = true;
-                        for (ClientHandler mc : Server.ar) {
-                            if(mc.name.equals(oppositUser)) {
-                                mc.couldMove = true;
-                                mc.inGame = true;
-                                mc.dos.writeUTF("PLAYER_2#" + commandUserId + "#MOVE");
-                            }
-                        }
+                        moveNotification(commandUserId, boardId);
+//                        Board b = controller.getBoardByUser(commandUserId);
+//                        String oppositUser = controller.getBoardOwner(boardId);
+//                        GameMessage message = new GameMessage(b.getUserOne(), b.getUserTwo(), "STOP", b.getBoard());
+//
+////                        dos.writeUTF("PLAYER_2#" + oppositUser + "#STOP");
+//                        dos.writeUTF(jsonController.parseGameMessage(message));
+//                        String board = BoardController.parseBoardToStringJSON(BoardController.createNewBoard());
+//                        controller.saveBoardToBase(boardId, board);
+//                        this.inGame = true;
+//                        for (ClientHandler mc : Server.ar) {
+//                            if(mc.name.equals(oppositUser)) {
+//                                mc.couldMove = true;
+//                                mc.inGame = true;
+//                                message.setState("MOVE");
+//
+//                                mc.dos.writeUTF(jsonController.parseGameMessage(message));
+////                                mc.dos.writeUTF("PLAYER_2#" + commandUserId + "#MOVE#" + board);
+//                            }
+//                        }
                         break;
                     case "CREATE_BOARD":
                         controller.createNewBoard(name);
                         break;
                     case "MAKE_MOVE":
-                        String i = st.nextToken();
-                        String j = st.nextToken();
+                        int i = Integer.parseInt(st.nextToken());
+                        int j = Integer.parseInt(st.nextToken());
                         if (this.couldMove) {
+                            Board bb = controller.getBoardByUser(commandUserId);
+                            String[][] baseboard = BoardController.parseStringToBoard(bb.getBoard());
+                            if(baseboard[i][j].equals("0")) {
+                                baseboard[i][j] = commandUserId;
+                                controller.saveBoardToBase(String.valueOf(bb.getId()), BoardController.parseBoardToStringJSON(baseboard));
+//                                Board newBoard = controller.getBoardByUser(commandUserId);
 
+                                moveNotification(commandUserId, String.valueOf(bb.getId()));
+
+                            }
                         }
                     default:
                         break;
@@ -118,5 +142,33 @@ class ClientHandler implements Runnable
         }catch(IOException e){
             e.printStackTrace();
         }
+    }
+
+    private void moveNotification(String commandUserId, String boardId) throws IOException {
+        Board b = controller.getBoardByUser(commandUserId);
+        String oppositUser;
+        if(name.equals(b.getUserTwo())) {
+            oppositUser = b.getUserOne();
+        } else {
+            oppositUser = b.getUserTwo();
+        }
+        GameMessage message = new GameMessage(b.getUserOne(), b.getUserTwo(), "STOP", b.getBoard());
+
+//                        dos.writeUTF("PLAYER_2#" + oppositUser + "#STOP");
+        dos.writeUTF(jsonController.parseGameMessage(message));
+        String board = BoardController.parseBoardToStringJSON(BoardController.createNewBoard());
+        controller.saveBoardToBase(boardId, board);
+        this.inGame = true;
+        for (ClientHandler mc : Server.ar) {
+            if(mc.name.equals(oppositUser)) {
+                mc.couldMove = true;
+                mc.inGame = true;
+                message.setState("MOVE");
+
+                mc.dos.writeUTF(jsonController.parseGameMessage(message));
+//                                mc.dos.writeUTF("PLAYER_2#" + commandUserId + "#MOVE#" + board);
+            }
+        }
+
     }
 }
